@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+ <title>Do Drag Doodle</title>
+ <style>
+ body {
+ text-align: center;
+ font-family: Arial, sans-serif;
+ margin: 0;
+ padding: 0;
+ background: linear-gradient(45deg, #e1bee7, #f8bbd0, #f48fb1, #bbdefb, #b2ebf2, #b2dfdb, #c8e6c9,
+#f0f4c3, #fff9c4, #ffe0b2, #fdd8e3, #f8bbd0, #fce4ec);
+ background-size: 400% 400%;
+ animation: pastelGradient 20s ease infinite;
+ color: black;
+ overflow-x: hidden;
+ }
+
+ @keyframes pastelGradient {
+ 0% { background-position: 0% 50%; }
+ 50% { background-position: 100% 50%; }
+ 100% { background-position: 0% 50%; }
+ }
+
+ nav.navbar {
+ background-color: rgba(255, 255, 255, 0.8);
+ position: fixed;
+ width: 100%;
+ top: 0;
+ left: 0;
+ z-index: 3;
+ box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+ }
+
+ nav ul {
+ list-style: none;
+ margin: 0;
+ padding: 10px;
+ display: flex;
+ justify-content: center;
+ gap: 20px;
+ }
+
+ nav ul li a {
+ text-decoration: none;
+ color: black;
+ font-weight: bold;
+ padding: 10px 15px;
+ border-radius: 5px;
+ }
+
+ nav ul li a:hover {
+ background-color: #ffd54f;
+ }
+
+ .section {
+ display: none;
+ padding: 100px 20px 40px;
+ }
+
+ .section.active {
+ display: block;
+ }
+
+ canvas {
+ border: 3px solid black;
+ background-color: white;
+ border-radius: 10px;
+ box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+ cursor: crosshair;
+ }
+
+ .controls {
+ margin: 10px;
+ padding: 10px;
+ background: rgba(0, 0, 0, 0.1);
+ border-radius: 10px;
+ display: inline-block;
+ }
+
+ button {
+ padding: 10px;
+ margin: 5px;
+ cursor: pointer;
+ border: none;
+ border-radius: 5px;
+ font-weight: bold;
+ }
+
+ .undo-btn { background: #ffcc00; }
+ .redo-btn { background: #ff9900; }
+ .clear-btn { background: #ff4444; color: white; }
+ .save-btn { background: #4caf50; color: white; }
+ .eraser-btn { background: #ff9800; color: white; }
+ </style>
+</head>
+<body>
+
+ <nav class="navbar">
+ <ul>
+ <li><a href="#" onclick="showSection('home')"> Home</a></li>
+ <li><a href="#" onclick="showSection('draw')"> Draw</a></li>
+ <li><a href="#" onclick="showSection('save')"> Save Art</a></li>
+ <li><a href="#" onclick="showSection('gallery')"> Gallery</a></li>
+ <li><a href="#" onclick="showSection('about')">ℹAbout</a></li>
+ </ul>
+ </nav>
+
+ <div id="home" class="section active">
+ <h2>Welcome to Do Drag Doodle!</h2>
+ <p>Create beautiful doodles and share your creativity.</p>
+ </div>
+
+ <div id="draw" class="section">
+ <h2>Do Drag Doodle!</h2>
+ <div class="controls">
+ <label> Color: <input type="color" id="colorPicker"></label>
+ <label> Brush Size: <input type="range" id="brushSize" min="1" max="20" value="5"></label>
+ <label> Opacity: <input type="range" id="opacity" min="0.1" max="1" step="0.1" value="1"></label>
+ <label> Brush Style:
+ <select id="brushStyle">
+ <option value="solid">Solid</option>
+ <option value="dashed">Dashed</option>
+ <option value="dotted">Dotted</option>
+ </select>
+ </label>
+ <button class="eraser-btn" onclick="toggleEraser()" id="eraserButton">Eraser Mode</button>
+ <button class="undo-btn" onclick="undo()">Undo (Ctrl+Z)</button>
+ <button class="redo-btn" onclick="redo()">Redo (Ctrl+Y)</button>
+ <button class="clear-btn" onclick="clearCanvas()">Clear</button>
+ <button class="save-btn" onclick="saveImage()">Save</button>
+ </div>
+ <br />
+ <canvas id="drawingCanvas" width="700" height="500"></canvas>
+ </div>
+
+ <div id="save" class="section">
+ <h2>Save Art</h2>
+ <p>Use the Save button in the Draw section to save your masterpiece!</p>
+ </div>
+
+ <div id="gallery" class="section">
+ <h2>Gallery</h2>
+ <p>Coming soon: a place to view your saved doodles!</p>
+ </div>
+
+ <div id="about" class="section">
+ <h2>About</h2>
+ <p>Do Drag Doodle is a fun interactive doodling app built with HTML5 Canvas and JavaScript.</p>
+ </div>
+
+ <script>
+ const canvas = document.getElementById('drawingCanvas');
+ const ctx = canvas.getContext('2d');
+ let painting = false;
+ let eraserMode = false;
+ let brushStyle = 'solid';
+ let strokes = [];
+ let undoneStrokes = [];
+
+ function startPosition(e) {
+ painting = true;
+ strokes.push([]);
+ draw(e);
+ }
+
+ function endPosition() {
+ painting = false;
+ ctx.beginPath();
+ }
+
+ function draw(e) {
+ if (!painting) return;
+ ctx.lineWidth = document.getElementById('brushSize').value;
+ ctx.globalAlpha = document.getElementById('opacity').value;
+ ctx.strokeStyle = eraserMode ? 'white' : document.getElementById('colorPicker').value;
+ ctx.setLineDash(brushStyle === 'dashed' ? [10, 5] : brushStyle === 'dotted' ? [2, 2] : []);
+
+ const rect = canvas.getBoundingClientRect();
+ const x = e.clientX - rect.left;
+ const y = e.clientY - rect.top;
+
+ ctx.lineTo(x, y);
+ ctx.stroke();
+ ctx.beginPath();
+ ctx.moveTo(x, y);
+
+ strokes[strokes.length - 1].push({ x, y, color: ctx.strokeStyle, width: ctx.lineWidth, alpha: ctx.globalAlpha,
+style: brushStyle });
+ }
+
+ function clearCanvas() {
+ ctx.clearRect(0, 0, canvas.width, canvas.height);
+ strokes = [];
+ undoneStrokes = [];
+ }
+
+ function toggleEraser() {
+ eraserMode = !eraserMode;
+ document.getElementById('eraserButton').classList.toggle('eraser-active', eraserMode);
+ }
+
+ function saveImage() {
+ let link = document.createElement('a');
+ link.download = 'doodle.png';
+ link.href = canvas.toDataURL();
+ link.click();
+ }
+
+ function undo() {
+ if (strokes.length > 0) {
+ undoneStrokes.push(strokes.pop());
+ redrawCanvas();
+ }
+ }
+
+ function redo() {
+ if (undoneStrokes.length > 0) {
+ strokes.push(undoneStrokes.pop());
+ redrawCanvas();
+ }
+ }
+
+ function redrawCanvas() {
+ ctx.clearRect(0, 0, canvas.width, canvas.height);
+ strokes.forEach(stroke => {
+ ctx.beginPath();
+ stroke.forEach(point => {
+ ctx.globalAlpha = point.alpha;
+ ctx.strokeStyle = point.color;
+ ctx.lineWidth = point.width;
+ ctx.setLineDash(point.style === 'dashed' ? [10, 5] : point.style === 'dotted' ? [2, 2] : []);
+ ctx.lineTo(point.x, point.y);
+ ctx.stroke();
+ ctx.beginPath();
+ ctx.moveTo(point.x, point.y);
+ });
+ });
+ }
+
+ document.getElementById('brushStyle').addEventListener('change', function () {
+ brushStyle = this.value;
+ });
+
+ document.addEventListener('keydown', function (e) {
+ if (e.ctrlKey && e.key === 'z') undo();
+ if (e.ctrlKey && e.key === 'y') redo();
+ });
+
+ canvas.addEventListener('mousedown', startPosition);
+ canvas.addEventListener('mouseup', endPosition);
+ canvas.addEventListener('mousemove', draw);
+
+ function showSection(id) {
+ document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ }
+ </script>
+</body>
+</html>
